@@ -4,6 +4,7 @@ from pathlib import Path
 
 configfile: 'config.yml'
 
+root='results'
 
 def sidecar(path: Path, new_suffix: str) -> Path:
     """
@@ -30,7 +31,7 @@ inputs = generate_inputs(bids_dir=config['bids_dir'], pybids_inputs=config['pybi
 rule all:
     input:
         inputs['dwi'].expand(
-        bids(suffix='dwi.mif',datatype='dwi',**inputs['dwi'].wildcards))
+        bids(root=root,suffix='dwi.mif',datatype='dwi',**inputs['dwi'].wildcards))
 
 rule import_mif:
     input:
@@ -38,7 +39,7 @@ rule import_mif:
         bval=sidecar(inputs['dwi'].path,'.bval'),
         bvec=sidecar(inputs['dwi'].path,'.bvec'),
     output:
-        dwi=bids(root='results',suffix='dwi.mif',datatype='dwi',**inputs['dwi'].wildcards)
+        dwi=bids(root=root,suffix='dwi.mif',datatype='dwi',**inputs['dwi'].wildcards)
     shell:
         'mrconvert {input.dwi} -fslgrad {input.bvec} {input.bval} {output.dwi}'
 

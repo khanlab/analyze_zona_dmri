@@ -9,4 +9,4 @@ pybids_inputs:
     wildcards: 
       - subject
       - session
-      
+
