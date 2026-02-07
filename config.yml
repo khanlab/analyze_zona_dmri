@@ -24,12 +24,17 @@ tracking:
 clustering:
   points:
     - 100
-  scalars:
-    - FA
-    - AD
-    - RD
-    - ADC
-    - coord0
-    - coord1
-    - coord2
+  scalargroups:
+    geom:
+      - coord0
+      - coord1
+      - coord2
+    all:
+      - FA
+      - AD
+      - RD
+      - ADC
+      - coord0
+      - coord1
+      - coord2
 

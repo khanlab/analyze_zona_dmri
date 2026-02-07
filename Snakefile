@@ -58,14 +58,16 @@ rule all:
             select=config["tracking"]["select"],
             algo=config["tracking"]["algo"],
         ),
-        scalars_npy=inputs["dwi"].expand(
+        streamlabels=inputs["dwi"].expand(
             bids(
                 root=root,
-                suffix="concatscalars.npy",
+                suffix="streamlabels.txt",
                 seedmask="{seedmask}",
                 algo="{algo}",
                 select="{select}",
                 points="{points}",
+                scalargroup="{scalargroup}",
+                desc="pcakmeans",
                 datatype="dwi",
                 **inputs["dwi"].wildcards,
             ),
@@ -73,6 +75,7 @@ rule all:
             select=config["tracking"]["select"],
             algo=config["tracking"]["algo"],
             points=config["clustering"]["points"],
+            scalargroup=config["clustering"]["scalargroups"].keys(),
         ),
 
 
@@ -301,8 +304,9 @@ rule make_coords_vol:
 
 
 rule concat_scalars:
+    """produces a N_scalars * N_streamlines * N_points array"""
     input:
-        scalar_txts=expand(
+        scalar_txts=lambda wildcards: expand(
             bids(
                 root=root,
                 suffix="trackscalars.txt",
@@ -315,7 +319,7 @@ rule concat_scalars:
                 **inputs["dwi"].wildcards,
             ),
             allow_missing=True,
-            scalar=config["clustering"]["scalars"],
+            scalar=config["clustering"]["scalargroups"][wildcards.scalargroup],
         ),
     output:
         npy=bids(
@@ -325,6 +329,7 @@ rule concat_scalars:
             algo="{algo,prob|det}",
             select="{select}",
             points="{points}",
+            scalargroup="{scalargroup}",
             datatype="dwi",
             **inputs["dwi"].wildcards,
         ),
@@ -334,5 +339,37 @@ rule concat_scalars:
         stacked = np.stack(
             [np.loadtxt(scalar_txt, skiprows=1) for scalar_txt in input.scalar_txts]
         )
-        print(stacked.shape)
         np.save(output.npy, stacked)
+
+
+rule pca_kmeans:
+    input:
+        npy=bids(
+            root=root,
+            suffix="concatscalars.npy",
+            seedmask="{seedmask}",
+            algo="{algo,prob|det}",
+            select="{select}",
+            points="{points}",
+            scalargroup="{scalargroup}",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
+    params:
+        n_components=20,
+        k=5,
+    output:
+        npy=bids(
+            root=root,
+            suffix="streamlabels.txt",
+            seedmask="{seedmask}",
+            algo="{algo}",
+            select="{select}",
+            points="{points}",
+            desc="pcakmeans",
+            scalargroup="{scalargroup}",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
+    script:
+        "scripts/pca_kmeans.py"
