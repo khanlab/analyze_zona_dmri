@@ -11,9 +11,30 @@ pybids_inputs:
       - session
 
 tracking:
+  seedmask:
+    - brain
+    - thFA0p3
   select: 
     - 5000
-    - 10000
   algo:
     - det
     - prob
+
+
+clustering:
+  points:
+    - 100
+  scalargroups:
+    geom:
+      - coord0
+      - coord1
+      - coord2
+    all:
+      - FA
+      - AD
+      - RD
+      - ADC
+      - coord0
+      - coord1
+      - coord2
+
