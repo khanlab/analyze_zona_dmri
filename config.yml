@@ -10,6 +10,14 @@ pybids_inputs:
       - subject
       - session
 
+downsample_res:
+  - 0p2mm
+  - 0p5mm
+  - 1mm
+  - 1p25mm
+  - 1p5mm
+  - 2mm
+
 tracking:
   seedmask:
     - brain

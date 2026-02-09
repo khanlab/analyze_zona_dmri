@@ -48,12 +48,14 @@ rule all:
             bids(
                 root=root,
                 suffix="tracks.tck",
+                res="{res}",
                 seedmask="{seedmask}",
                 algo="{algo}",
                 select="{select}",
                 datatype="dwi",
                 **inputs["dwi"].wildcards,
             ),
+            res=config["downsample_res"],
             seedmask=config["tracking"]["seedmask"],
             select=config["tracking"]["select"],
             algo=config["tracking"]["algo"],
@@ -62,6 +64,7 @@ rule all:
             bids(
                 root=root,
                 suffix="streamlabels.txt",
+                res="{res}",
                 seedmask="{seedmask}",
                 algo="{algo}",
                 select="{select}",
@@ -71,6 +74,7 @@ rule all:
                 datatype="dwi",
                 **inputs["dwi"].wildcards,
             ),
+            res=config["downsample_res"],
             seedmask=config["tracking"]["seedmask"],
             select=config["tracking"]["select"],
             algo=config["tracking"]["algo"],
@@ -90,9 +94,31 @@ rule import_mif:
         "mrconvert {input.dwi} -fslgrad {input.bvec} {input.bval} {output.dwi}"
 
 
-rule dwi2tensor_unmasked:
+rule downsample_dwi:
     input:
         dwi=bids(root=root, suffix="dwi.mif", datatype="dwi", **inputs["dwi"].wildcards),
+    params:
+        voxel_size=lambda wildcards: str(wildcards.res).replace("p", "."),
+    output:
+        dwi=bids(
+            root=root,
+            suffix="dwi.mif",
+            res="{res}mm",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
+    shell:
+        "mrgrid {input.dwi} regrid {output.dwi} -voxel {params.voxel_size} -interp cubic"
+
+
+rule dwi2tensor_unmasked:
+    input:
+        dwi=bids(
+            root=root,
+            suffix="dwi.mif",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
     output:
         b0=bids(root=root, suffix="b0.nii", datatype="dwi", **inputs["dwi"].wildcards),
         dt=temp(
@@ -186,7 +212,13 @@ rule get_fa_mask:
 
 rule tracking:
     input:
-        dwi=bids(root=root, suffix="dwi.mif", datatype="dwi", **inputs["dwi"].wildcards),
+        dwi=bids(
+            root=root,
+            suffix="dwi.mif",
+            datatype="dwi",
+            res="{res}",
+            **inputs["dwi"].wildcards,
+        ),
         seed=bids(
             root=root,
             suffix="mask.nii",
@@ -209,6 +241,7 @@ rule tracking:
         tck=bids(
             root=root,
             suffix="tracks.tck",
+            res="{res}",
             seedmask="{seedmask}",
             algo="{algo,prob|det}",
             select="{select}",
@@ -227,6 +260,7 @@ rule resample_tck:
         tck=bids(
             root=root,
             suffix="tracks.tck",
+            res="{res}",
             seedmask="{seedmask}",
             algo="{algo,prob|det}",
             select="{select}",
@@ -237,6 +271,7 @@ rule resample_tck:
         tck=bids(
             root=root,
             suffix="resampledtracks.tck",
+            res="{res}",
             seedmask="{seedmask}",
             algo="{algo,prob|det}",
             select="{select}",
@@ -253,6 +288,7 @@ rule sample_scalars_on_tck:
         tck=bids(
             root=root,
             suffix="resampledtracks.tck",
+            res="{res}",
             seedmask="{seedmask}",
             algo="{algo,prob|det}",
             select="{select}",
@@ -267,6 +303,7 @@ rule sample_scalars_on_tck:
         txt=bids(
             root=root,
             suffix="trackscalars.txt",
+            res="{res}",
             seedmask="{seedmask}",
             algo="{algo,prob|det}",
             select="{select}",
@@ -310,6 +347,7 @@ rule concat_scalars:
             bids(
                 root=root,
                 suffix="trackscalars.txt",
+                res="{res}",
                 seedmask="{seedmask}",
                 algo="{algo,prob|det}",
                 select="{select}",
@@ -325,6 +363,7 @@ rule concat_scalars:
         npy=bids(
             root=root,
             suffix="concatscalars.npy",
+            res="{res}",
             seedmask="{seedmask}",
             algo="{algo,prob|det}",
             select="{select}",
@@ -347,6 +386,7 @@ rule pca_kmeans:
         npy=bids(
             root=root,
             suffix="concatscalars.npy",
+            res="{res}",
             seedmask="{seedmask}",
             algo="{algo,prob|det}",
             select="{select}",
@@ -362,6 +402,7 @@ rule pca_kmeans:
         npy=bids(
             root=root,
             suffix="streamlabels.txt",
+            res="{res}",
             seedmask="{seedmask}",
             algo="{algo}",
             select="{select}",
