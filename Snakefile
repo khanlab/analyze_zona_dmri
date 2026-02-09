@@ -117,7 +117,6 @@ rule dwi2tensor_unmasked:
             root=root,
             suffix="dwi.mif",
             datatype="dwi",
-            res="{res}",
             **inputs["dwi"].wildcards,
         ),
     output:
