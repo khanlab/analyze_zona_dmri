@@ -76,3 +76,6 @@ clustering:
       - coord1
       - coord2
 
+connectome:
+  nodes: 
+    - GM

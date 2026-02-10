@@ -62,27 +62,26 @@ rule all:
             select=config["tracking"]["select"],
             algo=config["tracking"]["algo"],
         ),
-        streamlabels=inputs["dwi"].expand(
+        exemplars=inputs["dwi"].expand(
             bids(
-                root=root,
-                suffix="streamlabels.txt",
-                res="{res}",
-                seedmask="{seedmask}",
-                algo="{algo}",
-                select="{select}",
-                points="{points}",
-                scalargroup="{scalargroup}",
-                desc="pcakmeans",
-                datatype="dwi",
-                **inputs["dwi"].wildcards,
-            ),
+            root=root,
+            suffix="exemplars.tck",
+            res="{res}",
+            seedmask="{seedmask}",
+            algo="{algo}",
+            select="{select}",
+            nodes="{nodes}",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
             res=config["downsample_res"],
             seedmask=config["tracking"]["seedmask"],
             select=config["tracking"]["select"],
             algo=config["tracking"]["algo"],
-            points=config["clustering"]["points"],
-            scalargroup=config["clustering"]["scalargroups"].keys(),
+            nodes=config['connectome']['nodes'],
+
         ),
+
 
 
 rule import_mif:
@@ -478,16 +477,163 @@ rule reslice_dseg_to_dwi:
         dseg = inputs['dseg'].path,
         xfm = inputs['xfm_to_dwi'].path,
         ref=bids(
-            root=root, suffix="b0.nii", 
+            root=root, suffix="FA.nii", res="{res}",
             datatype="dwi", **inputs["dwi"].wildcards
         ),
 
     output:
         dseg=bids(
-            root=root, suffix="dseg.nii.gz",desc="{desc}", 
+            root=root, suffix="dseg.nii.gz",desc="{desc}", res="{res}",
             datatype="dwi", **inputs["dwi"].wildcards
         ),
     shell:
-        "antsApplyTransforms -d 3 -n NearestNeighbor -i {input.dseg} -t {input.xfm} -r {input.ref} -o {output.dseg}"
+        "antsApplyTransforms -d 3 -n NearestNeighbor -i {input.dseg} -t {input.xfm} -r {input.ref} -o {output.dseg} -u int"
+
+
+rule tck2connectome:
+    input:
+        tck=bids(
+            root=root,
+            suffix="tracks.tck",
+            res="{res}",
+            seedmask="{seedmask}",
+            algo="{algo}",
+            select="{select}",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
+        dseg=bids(
+            root=root, suffix="dseg.nii.gz",desc="{desc}", res="{res}",
+            datatype="dwi", **inputs["dwi"].wildcards
+        ),
+    output:
+        connectome=bids(
+            root=root,
+            suffix="connectome.csv",
+            res="{res}",
+            seedmask="{seedmask}",
+            algo="{algo}",
+            select="{select}",
+            nodes="{desc}",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
+        assignments=bids(
+            root=root,
+            suffix="assignments.txt",
+            res="{res}",
+            seedmask="{seedmask}",
+            algo="{algo}",
+            select="{select}",
+            nodes="{desc}",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
+
+    shell:
+        "tck2connectome {input.tck} {input.dseg} {output.connectome} -out_assignments {output.assignments}"
+
+
+
+rule connectome2tck:
+    input:
+        tck=bids(
+            root=root,
+            suffix="tracks.tck",
+            res="{res}",
+            seedmask="{seedmask}",
+            algo="{algo}",
+            select="{select}",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
+        assignments=bids(
+            root=root,
+            suffix="assignments.txt",
+            res="{res}",
+            seedmask="{seedmask}",
+            algo="{algo}",
+            select="{select}",
+            nodes="{desc}",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
+    params:
+        bundle_prefix = lambda wildcards, output: str(Path(output.bundle_dir) / 'bundles_')
+    output:
+        bundle_dir=directory(bids(
+            root=root,
+            suffix="bundles",
+            res="{res}",
+            seedmask="{seedmask}",
+            algo="{algo}",
+            select="{select}",
+            nodes="{desc}",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        )),
+    shell:
+        "mkdir -p {output.bundle_dir} && "
+        "connectome2tck {input.tck} {input.assignments} {params.bundle_prefix}"
+
+
+rule connectome2tck_exemplars:
+    input:
+        tck=bids(
+            root=root,
+            suffix="tracks.tck",
+            res="{res}",
+            seedmask="{seedmask}",
+            algo="{algo}",
+            select="{select}",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
+        assignments=bids(
+            root=root,
+            suffix="assignments.txt",
+            res="{res}",
+            seedmask="{seedmask}",
+            algo="{algo}",
+            select="{select}",
+            nodes="{desc}",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
+        dseg=bids(
+            root=root, suffix="dseg.nii.gz",desc="{desc}", res="{res}",
+            datatype="dwi", **inputs["dwi"].wildcards
+        ),
+
+    output:
+        exemplars=bids(
+            root=root,
+            suffix="exemplars.tck",
+            res="{res}",
+            seedmask="{seedmask}",
+            algo="{algo}",
+            select="{select}",
+            nodes="{desc}",
+            datatype="dwi",
+            **inputs["dwi"].wildcards,
+        ),
+    shell:
+        "connectome2tck {input.tck} {input.assignments} {output.exemplars} "
+        " -files single -exemplars {input.dseg}"
+        
+rule label2mesh:
+    input:
+        dseg=bids(
+            root=root, suffix="dseg.nii.gz",desc="{desc}", res="{res}",
+            datatype="dwi", **inputs["dwi"].wildcards
+        ),
+    output:
+        dseg=bids(
+            root=root, suffix="dseg.obj",desc="{desc}", res="{res}",
+            datatype="dwi", **inputs["dwi"].wildcards
+
+        ),
+    shell:
+        "label2mesh {input} {output}"
 
 
