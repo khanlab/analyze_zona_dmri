@@ -5,6 +5,12 @@ from pathlib import Path
 
 configfile: "config.yml"
 
+inputs = generate_inputs(
+    bids_dir=config["bids_dir"], pybids_inputs=config["pybids_inputs"],
+    derivatives=config["derivatives"]
+)
+
+
 
 root = "results"
 
@@ -27,10 +33,6 @@ def sidecar(path: Path, new_suffix: str) -> Path:
 
     return path.with_name(stem + new_suffix)
 
-
-inputs = generate_inputs(
-    bids_dir=config["bids_dir"], pybids_inputs=config["pybids_inputs"]
-)
 
 
 rule all:
@@ -464,3 +466,9 @@ rule pca_kmeans:
         ),
     script:
         "scripts/pca_kmeans.py"
+
+
+#-- dseg labels
+
+
+

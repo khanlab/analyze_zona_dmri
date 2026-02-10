@@ -1,4 +1,9 @@
-bids_dir: /nfs/khan/datasets/histo2mri/derivatives/snakedwi
+bids_dir: /nfs/khan/datasets/histo2mri/cfmm2bids/results/4_fix/bids
+derivatives: 
+ - /nfs/khan/datasets/histo2mri/derivatives
+ - transforms
+
+
 
 pybids_inputs:
   dwi:
@@ -7,9 +12,36 @@ pybids_inputs:
       extension: .nii.gz
       datatype: dwi
       subject: CAD02
+      desc: eddy
     wildcards: 
       - subject
       - session
+  dseg:
+    filters:
+      suffix: dseg
+      extension: .nii.gz
+      datatype: anat
+      space: T2starw
+    wildcards: 
+      - subject
+      - session
+      - desc
+      - space
+  xfm_to_anat:
+    filters:
+      suffix: xfm
+      extension: .txt
+      datatype: dwi
+      from: dwi
+      to: T2starw
+      desc: itk
+    wildcards: 
+      - subject
+      - session
+      - from
+      - to
+      - desc
+
 
 downsample_res:
   - 0p2mm
